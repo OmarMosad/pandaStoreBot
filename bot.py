@@ -3,16 +3,16 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 import datetime
+import nest_asyncio
 import asyncio
 
-# قراءة التوكن و ID الأدمن من متغيرات البيئة
+nest_asyncio.apply()
+
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
-# إنشاء تطبيق فلاسـك
 app = Flask(__name__)
 
-# إنشاء تطبيق تيليجرام
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
@@ -70,33 +70,26 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.delete()
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
-# ✅ إضافة الهاندلرز
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
-# ✅ صفحة رئيسية للتأكد أن البوت شغال
 @app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
-# ✅ تعديل الويرهوك ليشتغل بطريقة صح
+@app.before_first_request
+async def init_telegram_application():
+    if not application._initialized:
+        await application.initialize()
+    if not application._running:
+        await application.start()
+
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 async def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-
-        # لازم نتاكد التطبيق متبني (Initialized) وبدأ (Started)
-        if not application.initialized:
-            await application.initialize()
-        if not application.running:
-            await application.start()
-
         await application.process_update(update)
-
     return "ok"
 
-# ✅ تشغيل التطبيق
 if __name__ == "__main__":
-    import nest_asyncio
-    nest_asyncio.apply()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
