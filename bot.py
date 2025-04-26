@@ -5,6 +5,7 @@ import os
 import asyncio
 import datetime
 import nest_asyncio
+import httpx  # اضفناها
 
 # تفعيل nest_asyncio
 nest_asyncio.apply()
@@ -15,7 +16,15 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 # إنشاء التطبيق
 app = Flask(__name__)
-application = ApplicationBuilder().token(TOKEN).build()
+
+# إنشاء Client مخصص
+client = httpx.AsyncClient(
+    limits=httpx.Limits(max_connections=100),  # عدد اتصالات أكتر
+    timeout=httpx.Timeout(10.0)  # وقت انتظار معقول
+)
+
+# بناء التطبيق مع client مخصص
+application = ApplicationBuilder().token(TOKEN).client(client).build()
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -68,6 +77,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.delete()
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
+# تسجيل الهاندلرز
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
