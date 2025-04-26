@@ -3,6 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 import datetime
+import asyncio
 
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
@@ -44,12 +45,12 @@ def receive_order():
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        application.bot.send_message(
+        asyncio.run(application.bot.send_message(
             chat_id=ADMIN_ID,
             text=text,
             parse_mode="Markdown",
             reply_markup=reply_markup
-        )
+        ))
 
     return "ok"
 
@@ -60,9 +61,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data.startswith("confirm_"):
         username = query.data.replace("confirm_", "")
-        # ✅ احذف رسالة الطلب
         await query.message.delete()
-        # ✅ ابعت رسالة تأكيد صغيرة (اختياري)
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
 application.add_handler(CommandHandler("start", start))
@@ -73,12 +72,11 @@ def home():
     return "✅ Panda Bot is Running!"
 
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def telegram_webhook(request):
-    if request.method == "POST":
-        data = request.get_json(force=True)
-        update = Update.de_json(data, application.bot)
-        await application.process_update(update)
-        return "ok"
+def telegram_webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, application.bot)
+    asyncio.create_task(application.process_update(update))
+    return "ok"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
