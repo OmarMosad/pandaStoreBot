@@ -9,6 +9,8 @@ TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 app = Flask(__name__)
+
+# هنا تهيئة التطبيق باستخدام `ApplicationBuilder`
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
@@ -71,11 +73,12 @@ application.add_handler(CallbackQueryHandler(handle_callback))
 def home():
     return "✅ Panda Bot is Running!"
 
+# تعديل الويرهوك ليعمل مع `application`
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        asyncio.run(application.process_update(update))
+        application.process_update(update)  # تعديل لتناسب `application.process_update` مباشرة
     return "ok"
 
 if __name__ == "__main__":
