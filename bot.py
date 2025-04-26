@@ -6,13 +6,13 @@ import datetime
 import nest_asyncio
 import asyncio
 
+# تفعيل nest_asyncio
 nest_asyncio.apply()
 
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 app = Flask(__name__)
-
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
@@ -77,13 +77,7 @@ application.add_handler(CallbackQueryHandler(handle_callback))
 def home():
     return "✅ Panda Bot is Running!"
 
-@app.before_first_request
-async def init_telegram_application():
-    if not application._initialized:
-        await application.initialize()
-    if not application._running:
-        await application.start()
-
+# ✅ تعديل الويرهوك ليعمل بشكل سليم
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 async def webhook_handler():
     if request.method == "POST":
@@ -91,5 +85,14 @@ async def webhook_handler():
         await application.process_update(update)
     return "ok"
 
+# ✅ تشغيل التطبيق
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    async def main():
+        if not application._initialized:
+            await application.initialize()
+        if not application._running:
+            await application.start()
+
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+    asyncio.run(main())
