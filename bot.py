@@ -8,6 +8,9 @@ import asyncio
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
+# متغير علشان نعرف إذا البوت جاهز ولا لأ
+bot_ready = False
+
 # إنشاء التطبيق
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
@@ -41,6 +44,10 @@ application.add_handler(CallbackQueryHandler(handle_callback))
 # استقبال التحديثات Webhook
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 async def webhook_handler():
+    global bot_ready
+    if not bot_ready:
+        return "Bot is initializing, please wait...", 503  # نرجع Service Unavailable لو لسه مخلصش
+
     update = Update.de_json(request.get_json(force=True), application.bot)
     await application.process_update(update)
     return "ok", 200
@@ -52,9 +59,11 @@ def home():
 
 # دالة تجهيز التطبيق
 async def setup_application():
+    global bot_ready
     print("⏳ Initializing the bot...")
     await application.initialize()
     await application.start()
+    bot_ready = True
     print("✅ Bot initialized and started!")
 
 # تجهيز التطبيق أول ما السيرفر يبدأ
