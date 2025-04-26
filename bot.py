@@ -5,6 +5,7 @@ import os
 import datetime
 import nest_asyncio
 import asyncio
+from threading import Thread
 
 nest_asyncio.apply()
 
@@ -13,7 +14,6 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
-loop = asyncio.get_event_loop()  # نحطها فوق عشان نستخدمها
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -51,15 +51,12 @@ def receive_order():
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        asyncio.run_coroutine_threadsafe(
-            application.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=text,
-                parse_mode="Markdown",
-                reply_markup=reply_markup
-            ),
-            loop
-        )
+        asyncio.create_task(application.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        ))
 
     return "ok"
 
@@ -84,16 +81,23 @@ def home():
 def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        asyncio.run_coroutine_threadsafe(application.process_update(update), loop)
+        asyncio.create_task(application.process_update(update))
     return "ok"
 
 # تشغيل السيرفر والبوت مع بعض
 if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
 
-    async def main():
+    async def runner():
         await application.initialize()
         await application.start()
         print("✅ Bot started!")
 
-    loop.create_task(main())
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+        # نشغل Flask في Thread منفصل
+        def run_flask():
+            app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+        Thread(target=run_flask).start()
+
+    loop.run_until_complete(runner())
+    loop.run_forever()
