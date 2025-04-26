@@ -1,19 +1,18 @@
-from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 import asyncio
+from flask import Flask, request
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import Application, ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # إعدادات
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
-# متغير علشان نعرف إذا البوت جاهز ولا لأ
-bot_ready = False
-
-# إنشاء التطبيق
+# إنشاء التطبيق Flask
 app = Flask(__name__)
-application = ApplicationBuilder().token(TOKEN).build()
+
+# إنشاء تطبيق تيليجرام
+telegram_app: Application = ApplicationBuilder().token(TOKEN).build()
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -27,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# تأكيد تنفيذ الطلب
+# دالة معالجة الكول باك
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -38,40 +37,32 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
 # إضافة الهاندلرز
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CallbackQueryHandler(handle_callback))
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(handle_callback))
 
-# استقبال التحديثات Webhook
+# إعداد بوت تيليجرام في الخلفية
+async def telegram_bot_runner():
+    await telegram_app.initialize()
+    await telegram_app.start()
+    await telegram_app.updater.start_polling()  # خلي البوت شغال عادي بدون مشاكل
+
+# استقبال التحديثات Webhook من تليجرام
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook_handler():
-    global bot_ready
-    if not bot_ready:
-        return "Bot is initializing, please wait...", 503  # نرجع Service Unavailable لو لسه مخلصش
-
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    await telegram_app.process_update(update)
     return "ok", 200
 
-# الصفحة الافتراضية
-@app.route("/")
+# الصفحة الرئيسية للتأكد ان السيرفر شغال
+@app.route("/", methods=["GET"])
 def home():
-    return "✅ Panda Bot is Running!"
+    return "✅ Panda Bot is running!"
 
-# دالة تجهيز التطبيق
-async def setup_application():
-    global bot_ready
-    print("⏳ Initializing the bot...")
-    await application.initialize()
-    await application.start()
-    bot_ready = True
-    print("✅ Bot initialized and started!")
-
-# تجهيز التطبيق أول ما السيرفر يبدأ
-@app.before_first_request
-def before_first_request():
+# تشغيل كل حاجة لما السيرفر يشتغل
+def run():
     loop = asyncio.get_event_loop()
-    loop.create_task(setup_application())
-
-# تشغيل السيرفر لو محلي
-if __name__ == "__main__":
+    loop.create_task(telegram_bot_runner())
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
+
+if __name__ == "__main__":
+    run()
