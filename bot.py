@@ -12,7 +12,7 @@ nest_asyncio.apply()
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
-app = Flask(_name_)
+app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
