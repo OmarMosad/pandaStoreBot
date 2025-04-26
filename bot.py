@@ -46,17 +46,14 @@ def send_order():
             f"🗓 تاريخ الطلب: {date_text}"
         )
 
-        keyboard = [
-            [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
-            [InlineKeyboardButton("✅ تم تنفيذ الطلب", callback_data=f"confirm_{username}")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
         asyncio.create_task(application.bot.send_message(
             chat_id=ADMIN_ID,
             text=text,
             parse_mode="Markdown",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
+                [InlineKeyboardButton("✅ تم تنفيذ الطلب", callback_data=f"confirm_{username}")]
+            ])
         ))
 
     return "ok", 200
@@ -86,13 +83,16 @@ async def webhook_handler():
 def home():
     return "✅ Panda Bot is Running!"
 
-# تشغيل البوت والسيرفر
-async def run_bot():
+async def setup_application():
+    print("⏳ Initializing the bot...")
     await application.initialize()
     await application.start()
-    print("✅ Bot is running...")
+    print("✅ Bot initialized and started!")
 
 if __name__ == "__main__":
+    # نعمل لوب ونشغل البوت قبل سيرفر Flask
     loop = asyncio.get_event_loop()
-    loop.create_task(run_bot())
+    loop.run_until_complete(setup_application())
+
+    # بعدين نشغل السيرفر
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
