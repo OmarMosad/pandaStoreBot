@@ -5,6 +5,6 @@
     }
   },
   "deploy": {
-    "startCommand": "gunicorn bot:app"
+    "startCommand": "gunicorn bot:app -k uvicorn.workers.UvicornWorker"
   }
 }
