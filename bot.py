@@ -1,21 +1,29 @@
-from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+# bot.py
 import os
 import asyncio
 import datetime
+from flask import Flask, request
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from motor.motor_asyncio import AsyncIOMotorClient
 import nest_asyncio
 
-# تفعيل nest_asyncio
+# تفعيل nest_asyncio عشان نستخدم Flask مع asyncio
 nest_asyncio.apply()
 
 # إعدادات
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
+MONGO_URI = os.getenv("MONGO_URI")
 
 # إنشاء التطبيق
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
+
+# اتصال بقاعدة بيانات MongoDB
+mongo_client = AsyncIOMotorClient(MONGO_URI)
+db = mongo_client.get_database()  # بياخد الداتابيز اللي موجودة في رابط الاتصال
+orders_collection = db.orders  # اسم الكوليكشن بتاع الأوردرات (غيره لو عندك اسم تاني)
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -29,35 +37,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# استقبال طلبات الأوردر
-@app.route("/send_order", methods=["POST"])
-def send_order():
-    data = request.json
-    username = data.get("username")
-    stars = data.get("stars")
-    created_at = data.get("createdAt", datetime.datetime.now().isoformat())
+# دالة لمراقبة الطلبات الجديدة في قاعدة البيانات
+async def monitor_orders():
+    print("🔎 بدأ مراقبة الطلبات الجديدة في MongoDB...")
+    pipeline = [{'$match': {'operationType': 'insert'}}]  # نرصد بس الإضافات الجديدة
+    async with orders_collection.watch(pipeline) as stream:
+        async for change in stream:
+            order = change['fullDocument']
+            username = order.get('username')
+            stars = order.get('stars')
+            created_at = order.get('createdAt', datetime.datetime.now().isoformat())
 
-    if username and stars:
-        date_text = datetime.datetime.fromisoformat(created_at).strftime("%Y-%m-%d %H:%M:%S")
-        text = (
-            f"🛒 طلب جديد:\n\n"
-            f"👤 المستخدم: @{username}\n"
-            f"⭐ عدد النجوم: {stars}\n"
-            f"🗓 تاريخ الطلب: {date_text}"
-        )
-
-        # استخدم create_task علشان ميتعطلش
-        asyncio.create_task(application.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=text,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
-                [InlineKeyboardButton("✅ تم تنفيذ الطلب", callback_data=f"confirm_{username}")]
-            ])
-        ))
-
-    return "ok", 200
+            if username and stars:
+                date_text = datetime.datetime.fromisoformat(created_at).strftime("%Y-%m-%d %H:%M:%S")
+                text = (
+                    f"🛒 طلب جديد:\n\n"
+                    f"👤 المستخدم: @{username}\n"
+                    f"⭐ عدد النجوم: {stars}\n"
+                    f"🗓 تاريخ الطلب: {date_text}"
+                )
+                await application.bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=text,
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
+                        [InlineKeyboardButton("✅ تم تنفيذ الطلب", callback_data=f"confirm_{username}")]
+                    ])
+                )
 
 # تأكيد تنفيذ الطلب
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,17 +80,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
-# استقبال التحديثات Webhook
-@app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook_handler():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
-    return "ok", 200
-
-# الصفحة الافتراضية
+# صفحة رئيسية للاطمئنان أن البوت شغال
 @app.route("/")
 def home():
-    return "✅ Panda Bot is Running!"
+    return "✅ Panda Bot is Running and Monitoring MongoDB!"
 
 # دالة تجهيز التطبيق
 async def setup_application():
@@ -91,6 +91,7 @@ async def setup_application():
     await application.initialize()
     await application.start()
     print("✅ Bot initialized and started!")
+    asyncio.create_task(monitor_orders())  # نبدأ مراقبة الطلبات بعد بدء البوت
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
