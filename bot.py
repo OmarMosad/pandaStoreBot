@@ -3,26 +3,14 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 import asyncio
-import datetime
-import nest_asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-
-# تفعيل nest_asyncio
-nest_asyncio.apply()
 
 # إعدادات
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
-MONGO_URI = os.getenv("MONGO_URI")
 
 # إنشاء التطبيق
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
-
-# اتصال بقاعدة البيانات
-mongo_client = AsyncIOMotorClient(MONGO_URI)
-db = mongo_client.get_default_database()
-orders_collection = db["orders"]
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -35,35 +23,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "مرحبًا بك في Panda Store 🐼✨!\nتقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
         reply_markup=reply_markup
     )
-
-# استقبال الطلبات الجديدة من قاعدة البيانات
-async def watch_orders():
-    pipeline = [{'$match': {'operationType': 'insert'}}]  # نراقب الإدخالات الجديدة فقط
-    async with orders_collection.watch(pipeline) as stream:
-        async for change in stream:
-            order = change['fullDocument']
-            username = order.get("username", "غير معروف")
-            stars = order.get("stars", 0)
-            created_at = order.get("createdAt", datetime.datetime.now().isoformat())
-
-            date_text = datetime.datetime.fromisoformat(created_at).strftime("%Y-%m-%d %H:%M:%S")
-
-            text = (
-                f"🛒 طلب جديد:\n\n"
-                f"👤 المستخدم: @{username}\n"
-                f"⭐ عدد النجوم: {stars}\n"
-                f"🗓 تاريخ الطلب: {date_text}"
-            )
-
-            await application.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
-                    [InlineKeyboardButton("✅ تم تنفيذ الطلب", callback_data=f"confirm_{username}")]
-                ])
-            )
 
 # تأكيد تنفيذ الطلب
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,7 +55,6 @@ async def setup_application():
     print("⏳ Initializing the bot...")
     await application.initialize()
     await application.start()
-    asyncio.create_task(watch_orders())  # نبدأ في مراقبة الأوردرات
     print("✅ Bot initialized and started!")
 
 if __name__ == "__main__":
