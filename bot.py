@@ -5,7 +5,6 @@ import os
 import asyncio
 import datetime
 import nest_asyncio
-import httpx  # اضفناها
 
 # تفعيل nest_asyncio
 nest_asyncio.apply()
@@ -16,15 +15,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 # إنشاء التطبيق
 app = Flask(__name__)
-
-# إنشاء Client مخصص
-client = httpx.AsyncClient(
-    limits=httpx.Limits(max_connections=100),  # عدد اتصالات أكتر
-    timeout=httpx.Timeout(10.0)  # وقت انتظار معقول
-)
-
-# بناء التطبيق مع client مخصص
-application = ApplicationBuilder().token(TOKEN).client(client).build()
+application = ApplicationBuilder().token(TOKEN).build()
 
 # دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -55,6 +46,7 @@ def send_order():
             f"🗓 تاريخ الطلب: {date_text}"
         )
 
+        # استخدم create_task علشان ميتعطلش
         asyncio.create_task(application.bot.send_message(
             chat_id=ADMIN_ID,
             text=text,
@@ -77,7 +69,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.delete()
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
-# تسجيل الهاندلرز
+# إضافة الهاندلرز
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
@@ -93,6 +85,7 @@ async def webhook_handler():
 def home():
     return "✅ Panda Bot is Running!"
 
+# دالة تجهيز التطبيق
 async def setup_application():
     print("⏳ Initializing the bot...")
     await application.initialize()
@@ -100,9 +93,6 @@ async def setup_application():
     print("✅ Bot initialized and started!")
 
 if __name__ == "__main__":
-    # نعمل لوب ونشغل البوت قبل سيرفر Flask
     loop = asyncio.get_event_loop()
     loop.run_until_complete(setup_application())
-
-    # بعدين نشغل السيرفر
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
