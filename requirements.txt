@@ -1,8 +1,8 @@
-Flask[async]
+Flask==2.2.5
 python-telegram-bot==20.3
-nest_asyncio
 motor
 pymongo
 gunicorn
 httpx
 uvicorn
+nest_asyncio
