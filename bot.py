@@ -10,7 +10,6 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 app = Flask(__name__)
 
-# هنا تهيئة التطبيق باستخدام `ApplicationBuilder`
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
@@ -27,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ✅ استقبال الطلبات من السيرفر
 @app.route("/send_order", methods=["POST"])
-def receive_order():
+async def receive_order():
     data = request.json
     username = data.get("username")
     stars = data.get("stars")
@@ -36,10 +35,12 @@ def receive_order():
     if username and stars:
         date_text = datetime.datetime.fromisoformat(created_at).strftime("%Y-%m-%d %H:%M:%S")
 
-        text = f"🛒 طلب جديد:\n\n"
-        text += f"👤 المستخدم: `@{username}`\n"
-        text += f"⭐ عدد النجوم: {stars}\n"
-        text += f"🗓️ تاريخ الطلب: {date_text}"
+        text = (
+            f"🛒 طلب جديد:\n\n"
+            f"👤 المستخدم: `@{username}`\n"
+            f"⭐ عدد النجوم: {stars}\n"
+            f"🗓️ تاريخ الطلب: {date_text}"
+        )
 
         keyboard = [
             [InlineKeyboardButton("💳 دفع المستخدم", web_app=WebAppInfo(url="https://fragment.com/stars"))],
@@ -47,12 +48,12 @@ def receive_order():
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        asyncio.run(application.bot.send_message(
+        await application.bot.send_message(
             chat_id=ADMIN_ID,
             text=text,
             parse_mode="Markdown",
             reply_markup=reply_markup
-        ))
+        )
 
     return "ok"
 
@@ -73,13 +74,15 @@ application.add_handler(CallbackQueryHandler(handle_callback))
 def home():
     return "✅ Panda Bot is Running!"
 
-# تعديل الويرهوك ليعمل مع `application`
+# ✅ تعديل الويرهوك ليعمل صح
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-def webhook_handler():
+async def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        application.process_update(update)  # تعديل لتناسب `application.process_update` مباشرة
+        await application.process_update(update)  # ✅ هنا بقت await
     return "ok"
 
 if __name__ == "__main__":
+    import nest_asyncio
+    nest_asyncio.apply()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
