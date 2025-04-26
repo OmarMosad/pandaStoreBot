@@ -5,11 +5,14 @@ import os
 import datetime
 import asyncio
 
+# قراءة التوكن و ID الأدمن من متغيرات البيئة
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
+# إنشاء تطبيق فلاسـك
 app = Flask(__name__)
 
+# إنشاء تطبيق تيليجرام
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ✅ دالة /start
@@ -67,21 +70,32 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.delete()
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"✅ تم تنفيذ طلب @{username} وحذف الرسالة بنجاح.")
 
+# ✅ إضافة الهاندلرز
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
+# ✅ صفحة رئيسية للتأكد أن البوت شغال
 @app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
-# ✅ تعديل الويرهوك ليعمل صح
+# ✅ تعديل الويرهوك ليشتغل بطريقة صح
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 async def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)  # ✅ هنا بقت await
+
+        # لازم نتاكد التطبيق متبني (Initialized) وبدأ (Started)
+        if not application.initialized:
+            await application.initialize()
+        if not application.running:
+            await application.start()
+
+        await application.process_update(update)
+
     return "ok"
 
+# ✅ تشغيل التطبيق
 if __name__ == "__main__":
     import nest_asyncio
     nest_asyncio.apply()
