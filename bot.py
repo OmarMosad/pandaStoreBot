@@ -6,7 +6,6 @@ import datetime
 import nest_asyncio
 import asyncio
 
-# تفعيل nest_asyncio
 nest_asyncio.apply()
 
 TOKEN = os.environ.get("BOT_TOKEN")
@@ -14,8 +13,9 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
+loop = asyncio.get_event_loop()  # نحطها فوق عشان نستخدمها
 
-# ✅ دالة /start
+# دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))]
@@ -27,9 +27,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# ✅ استقبال الطلبات من السيرفر
+# استقبال الطلبات من الويب
 @app.route("/send_order", methods=["POST"])
-async def receive_order():
+def receive_order():
     data = request.json
     username = data.get("username")
     stars = data.get("stars")
@@ -51,16 +51,19 @@ async def receive_order():
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await application.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=text,
-            parse_mode="Markdown",
-            reply_markup=reply_markup
+        asyncio.run_coroutine_threadsafe(
+            application.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            ),
+            loop
         )
 
     return "ok"
 
-# ✅ لما تدوس تأكيد تنفيذ الطلب
+# لما تدوس تأكيد تنفيذ الطلب
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -77,22 +80,20 @@ application.add_handler(CallbackQueryHandler(handle_callback))
 def home():
     return "✅ Panda Bot is Running!"
 
-# ✅ تعديل الويرهوك ليعمل بشكل سليم
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook_handler():
+def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
+        asyncio.run_coroutine_threadsafe(application.process_update(update), loop)
     return "ok"
 
-# ✅ تشغيل التطبيق
+# تشغيل السيرفر والبوت مع بعض
 if __name__ == "__main__":
+
     async def main():
-        if not application._initialized:
-            await application.initialize()
-        if not application._running:
-            await application.start()
+        await application.initialize()
+        await application.start()
+        print("✅ Bot started!")
 
-        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-    asyncio.run(main())
+    loop.create_task(main())
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
