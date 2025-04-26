@@ -86,7 +86,7 @@ async def webhook_handler():
     return "ok"
 
 # ✅ تشغيل التطبيق
-if _name_ == "_main_":
+if __name__ == "__main__":
     async def main():
         if not application._initialized:
             await application.initialize()
