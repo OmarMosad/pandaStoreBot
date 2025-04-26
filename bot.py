@@ -57,7 +57,12 @@ async def setup_application():
     await application.start()
     print("✅ Bot initialized and started!")
 
-if __name__ == "__main__":
+# تجهيز التطبيق أول ما السيرفر يبدأ
+@app.before_first_request
+def before_first_request():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(setup_application())
+    loop.create_task(setup_application())
+
+# تشغيل السيرفر لو محلي
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
