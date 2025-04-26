@@ -2,20 +2,22 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
+import asyncio
 import datetime
 import nest_asyncio
-import asyncio
 
 # تفعيل nest_asyncio
 nest_asyncio.apply()
 
-TOKEN = os.environ.get("BOT_TOKEN")
-ADMIN_ID = int(os.environ.get("ADMIN_ID"))
+# إعدادات
+TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
+# إنشاء التطبيق
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
 
-# ✅ دالة /start
+# دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))]
@@ -27,9 +29,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# ✅ استقبال الطلبات من السيرفر
+# استقبال طلبات الأوردر
 @app.route("/send_order", methods=["POST"])
-async def receive_order():
+def send_order():
     data = request.json
     username = data.get("username")
     stars = data.get("stars")
@@ -37,7 +39,6 @@ async def receive_order():
 
     if username and stars:
         date_text = datetime.datetime.fromisoformat(created_at).strftime("%Y-%m-%d %H:%M:%S")
-
         text = (
             f"🛒 طلب جديد:\n\n"
             f"👤 المستخدم: @{username}\n"
@@ -51,16 +52,16 @@ async def receive_order():
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await application.bot.send_message(
+        asyncio.create_task(application.bot.send_message(
             chat_id=ADMIN_ID,
             text=text,
             parse_mode="Markdown",
             reply_markup=reply_markup
-        )
+        ))
 
-    return "ok"
+    return "ok", 200
 
-# ✅ لما تدوس تأكيد تنفيذ الطلب
+# تأكيد تنفيذ الطلب
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -73,26 +74,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(handle_callback))
 
+# استقبال التحديثات Webhook
+@app.route(f"/webhook/{TOKEN}", methods=["POST"])
+async def webhook_handler():
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    await application.process_update(update)
+    return "ok", 200
+
+# الصفحة الافتراضية
 @app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
-# ✅ تعديل الويرهوك ليعمل بشكل سليم
-@app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook_handler():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
-    return "ok"
+# تشغيل البوت والسيرفر
+async def run_bot():
+    await application.initialize()
+    await application.start()
+    print("✅ Bot is running...")
 
-# ✅ تشغيل التطبيق
 if __name__ == "__main__":
-    async def main():
-        if not application._initialized:
-            await application.initialize()
-        if not application._running:
-            await application.start()
-
-        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_bot())
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
