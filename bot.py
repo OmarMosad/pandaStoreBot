@@ -11,7 +11,7 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
 
-# ✅ دالة رسالة البداية
+# ✅ دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))]
@@ -72,10 +72,10 @@ def home():
     return "✅ Panda Bot is Running!"
 
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-def telegram_webhook():
-    data = request.get_json(force=True)
-    update = Update.de_json(data, application.bot)
-    asyncio.create_task(application.process_update(update))
+def webhook_handler():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        asyncio.run(application.process_update(update))
     return "ok"
 
 if __name__ == "__main__":
