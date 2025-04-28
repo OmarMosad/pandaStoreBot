@@ -1,19 +1,17 @@
 import os
 import asyncio
 import nest_asyncio
-import requests
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import requests
 
-# تفعيل nest_asyncio
 nest_asyncio.apply()
 
-# التوكن والهوك
-TOKEN = "7357184512:AAEzEFq2unKQ0oemjma3XsIF0OESrgywa6g"
-WEBHOOK_URL = "https://web-production-bdb7a.up.railway.app"  # لينك الموقع بتاعك
+TOKEN = "التوكن بتاعك هنا"
+WEBHOOK_URL = "رابط الموقع بتاعك هنا"  # مثلاً https://اسمك.railway.app
 
-# إنشاء بوت تيليجرام
+flask_app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
 
 # أمر /start
@@ -27,20 +25,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# إضافة الهاندلر
 application.add_handler(CommandHandler("start", start))
 
-# إنشاء سيرفر Flask
-app = Flask(__name__)
-
-@app.route('/')
+# الصفحة الرئيسية
+@flask_app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
-@app.route('/webhook', methods=['POST'])
-async def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
+# استقبال التحديثات
+@flask_app.route("/webhook", methods=["POST"])
+def webhook_handler():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(application.process_update(update))
     return "ok", 200
 
 # تهيئة الويب هوك
@@ -51,12 +50,13 @@ async def setup_webhook():
     response = requests.post(url, data=data)
     print("Webhook setup response:", response.json())
 
-# تشغيل كل حاجة
-async def main():
-    await application.initialize()
-    await application.start()
-    await setup_webhook()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 if __name__ == "__main__":
+    async def main():
+        if not application._initialized:
+            await application.initialize()
+        if not application._running:
+            await application.start()
+        await setup_webhook()
+        flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
     asyncio.run(main())
