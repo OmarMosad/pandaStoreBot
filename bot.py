@@ -9,13 +9,9 @@ import requests
 # تفعيل nest_asyncio
 nest_asyncio.apply()
 
-# جلب التوكن والرابط من متغيرات البيئة
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-# تأكد إن التوكن والرابط موجودين
-if not TOKEN or not WEBHOOK_URL:
-    raise Exception("❌ BOT_TOKEN أو WEBHOOK_URL مش متعرفة!")
+# توكن البوت ورابط الويب هوك
+TOKEN = "7357184512:AAEzEFq2unKQ0oemjma3XsIF0OESrgywa6g"
+WEBHOOK_URL = "https://web-production-bdb7a.up.railway.app/"
 
 # إنشاء تطبيق تيليجرام وفلاسك
 application = ApplicationBuilder().token(TOKEN).build()
