@@ -1,0 +1,11 @@
+{
+  "build": {
+    "env": {
+      "BOT_TOKEN": "",
+      "WEBHOOK_URL": ""
+    }
+  },
+  "deploy": {
+    "startCommand": "python3 bot.py"
+  }
+}
