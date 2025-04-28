@@ -62,6 +62,15 @@ if __name__ == "__main__":
         if not application._running:
             await application.start()
         await setup_webhook()
-        flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+        if __name__ == "__main__":
+    async def main():
+        if not application._initialized:
+            await application.initialize()
+        if not application._running:
+            await application.start()
+        await setup_webhook()
+
+    asyncio.run(main())
+
 
     asyncio.run(main())
