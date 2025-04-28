@@ -62,15 +62,5 @@ if __name__ == "__main__":
         if not application._running:
             await application.start()
         await setup_webhook()
-        if __name__ == "__main__":
-    async def main():
-        if not application._initialized:
-            await application.initialize()
-        if not application._running:
-            await application.start()
-        await setup_webhook()
-
-    asyncio.run(main())
-
 
     asyncio.run(main())
