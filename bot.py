@@ -6,17 +6,19 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
 
-# تفعيل nest_asyncio لتجنب مشاكل الـ Event Loop
+# تفعيل nest_asyncio لتجنب تعارض مع Flask
 nest_asyncio.apply()
 
-# قراءة التوكن والرابط من البيئة
-TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # نحط اللينك الأساسي بتاع الموقع
+# التوكن الخاص بالبوت
+TOKEN = "7357184512:AAEzEFq2unKQ0oemjma3XsIF0OESrgywa6g"
+
+# رابط الويب هوك
+WEBHOOK_URL = "https://your-railway-app-url.up.railway.app"
 
 # إنشاء تطبيق Flask
 app = Flask(__name__)
 
-# إنشاء تطبيق تيليجرام
+# بناء تطبيق تيليجرام
 application = ApplicationBuilder().token(TOKEN).build()
 
 # كود أمر /start
@@ -33,7 +35,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # إضافة الهاندلر
 application.add_handler(CommandHandler("start", start))
 
-# الصفحة الرئيسية في Flask
+# الصفحة الرئيسية
 @app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
@@ -49,7 +51,7 @@ def webhook_handler():
 # وظيفة إعداد الويب هوك تلقائي
 async def setup_webhook():
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    webhook_url = f"{WEBHOOK_URL}/webhook/{TOKEN}"  # إضافة الـ TOKEN للرابط
+    webhook_url = f"{WEBHOOK_URL}/webhook/{TOKEN}"
     data = {"url": webhook_url}
     response = requests.post(url, data=data)
     print("Webhook setup response:", response.json())
