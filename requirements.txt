@@ -1,8 +1,3 @@
-Flask==2.2.5
-python-telegram-bot==20.3
-motor
-pymongo
-gunicorn
-httpx
-uvicorn
+python-telegram-bot==20.8
+Flask
 nest_asyncio
