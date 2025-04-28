@@ -3,7 +3,7 @@ import asyncio
 import nest_asyncio
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler  # تصحيح الاستيرادات
 import requests
 
 # تفعيل nest_asyncio
