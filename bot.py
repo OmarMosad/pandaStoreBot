@@ -29,10 +29,10 @@ def home():
     return "✅ Panda Bot is Running!"
 
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook_handler():
+def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
+        asyncio.create_task(application.process_update(update))
     return "ok", 200
 
 if __name__ == "__main__":
