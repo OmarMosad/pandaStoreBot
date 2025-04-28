@@ -6,50 +6,69 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
 
+# تفعيل nest_asyncio
 nest_asyncio.apply()
 
-TOKEN = "التوكن بتاعك هنا"
-WEBHOOK_URL = "رابط الموقع بتاعك هنا"  # مثلاً https://اسمك.railway.app
+# جلب التوكن والرابط من متغيرات البيئة
+TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-flask_app = Flask(__name__)
+# تأكد إن التوكن والرابط موجودين
+if not TOKEN or not WEBHOOK_URL:
+    raise Exception("❌ BOT_TOKEN أو WEBHOOK_URL مش متعرفة!")
+
+# إنشاء تطبيق تيليجرام وفلاسك
 application = ApplicationBuilder().token(TOKEN).build()
+flask_app = Flask(__name__)
 
 # أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))]
+        [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))],
+        [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "مرحبًا بك في Panda Store 🐼✨!\nتقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
+        "مرحبًا بك في Panda Store 🐼✨!\n"
+        "تقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
         reply_markup=reply_markup
     )
 
+# لما المستخدم يضغط على "Start Shopping"
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "start_shopping":
+        await start(update, context)
+
+# تسجيل أوامر البوت
 application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("restart", start))  # لو تحب تضيف أمر إعادة تشغيل عادي
+application.add_handler(
+    telegram.ext.CallbackQueryHandler(button_handler)  # التعامل مع زرار "Start Shopping"
+)
 
 # الصفحة الرئيسية
 @flask_app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
-# استقبال التحديثات
+# استقبال التحديثات من تيليجرام
 @flask_app.route("/webhook", methods=["POST"])
 def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(application.process_update(update))
+        asyncio.run(application.process_update(update))
     return "ok", 200
 
-# تهيئة الويب هوك
+# إعداد الويب هوك
 async def setup_webhook():
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    webhook_url = f"{WEBHOOK_URL}/webhook"
-    data = {"url": webhook_url}
-    response = requests.post(url, data=data)
+    set_webhook_url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    webhook_data = {"url": f"{WEBHOOK_URL}/webhook"}
+    response = requests.post(set_webhook_url, data=webhook_data)
     print("Webhook setup response:", response.json())
 
+# بدء البوت والخادم
 if __name__ == "__main__":
     async def main():
         if not application._initialized:
