@@ -6,10 +6,10 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
 
-# تفعيل nest_asyncio
+# تفعيل nest_asyncio لتجنب مشاكل الـ Event Loop
 nest_asyncio.apply()
 
-# قراءة التوكن
+# قراءة التوكن والرابط من البيئة
 TOKEN = os.environ.get("BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # نحط اللينك الأساسي بتاع الموقع
 
@@ -33,13 +33,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # إضافة الهاندلر
 application.add_handler(CommandHandler("start", start))
 
-# الصفحة الرئيسية
+# الصفحة الرئيسية في Flask
 @app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
 
 # ويب هوك ريسيفر
-@app.route("/webhook", methods=["POST"])
+@app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
@@ -49,7 +49,7 @@ def webhook_handler():
 # وظيفة إعداد الويب هوك تلقائي
 async def setup_webhook():
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    webhook_url = f"{WEBHOOK_URL}/webhook"
+    webhook_url = f"{WEBHOOK_URL}/webhook/{TOKEN}"  # إضافة الـ TOKEN للرابط
     data = {"url": webhook_url}
     response = requests.post(url, data=data)
     print("Webhook setup response:", response.json())
