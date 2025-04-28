@@ -3,7 +3,7 @@ import asyncio
 import nest_asyncio
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 import requests
 
 # تفعيل nest_asyncio
@@ -24,7 +24,7 @@ flask_app = Flask(__name__)
 # أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🚀 افتح Panda Store", web_app=WebAppInfo(url="https://pandastores.onrender.com"))],
+        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")],  # رابط عادي يفتح في المتصفح
         [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -45,7 +45,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("restart", start))  # لو تحب تضيف أمر إعادة تشغيل عادي
 application.add_handler(
-    telegram.ext.CallbackQueryHandler(button_handler)  # التعامل مع زرار "Start Shopping"
+    CallbackQueryHandler(button_handler)  # التعامل مع زرار "Start Shopping"
 )
 
 # الصفحة الرئيسية
