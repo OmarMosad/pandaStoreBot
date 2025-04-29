@@ -10,8 +10,8 @@ import requests
 nest_asyncio.apply()
 
 # توكن البوت ورابط الويب هوك
-TOKEN = "توكن البوت هنا"
-WEBHOOK_URL = "رابط الويب هوك هنا"
+TOKEN = "7357184512:AAEzEFq2unKQ0oemjma3XsIF0OESrgywa6g"
+WEBHOOK_URL = "https://web-production-bdb7a.up.railway.app/"
 
 # إنشاء تطبيق تيليجرام وفلاسك
 application = ApplicationBuilder().token(TOKEN).build()
