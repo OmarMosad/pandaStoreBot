@@ -3,7 +3,7 @@ import asyncio
 import nest_asyncio
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 import requests
 
 # تفعيل nest_asyncio
@@ -51,12 +51,21 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "إذا كنت بحاجة للمساعدة، يمكنك التواصل مع المدير عبر تيليجرام: @OMAR_M_SHEHATA"
     )
 
+# التعامل مع الزر عند الضغط عليه
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  # للإجابة على الحدث
+    if query.data == 'help':
+        await query.message.reply_text(
+            "إذا كنت بحاجة للمساعدة، يمكنك التواصل مع المدير عبر تيليجرام: @OMAR_M_SHEHATA"
+        )
+
 # تسجيل الأوامر
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("restart", start))
 
-# التعامل مع زر المساعدة
-application.add_handler(CommandHandler("help", help))
+# إضافة handler للزر
+application.add_handler(CallbackQueryHandler(button_handler))
 
 # صفحة التشغيل
 @flask_app.route("/")
