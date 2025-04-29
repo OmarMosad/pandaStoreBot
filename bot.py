@@ -1,9 +1,9 @@
-mport os
+import os
 import asyncio
 import nest_asyncio
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
 
 # تفعيل nest_asyncio
@@ -19,63 +19,36 @@ flask_app = Flask(__name__)
 
 # أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        inline_keyboard = [
-            [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")]
-        ]
-        reply_markup = InlineKeyboardMarkup(inline_keyboard)
+    inline_keyboard = [
+        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")]
+    ]
+    reply_markup = InlineKeyboardMarkup(inline_keyboard)
 
-        reply_keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton("❓المساعدة")]
-            ],
-            resize_keyboard=True,
-            one_time_keyboard=False
-        )
+    reply_keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("🚀 Start Shopping")],
+            [KeyboardButton("❓المساعدة")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
 
-        await update.message.reply_text(
-            "مرحبًا بك في Panda Store 🐼✨!\n"
-            "تقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
-            reply_markup=reply_markup
-        )
+    await update.message.reply_text(
+        "مرحبًا بك في Panda Store 🐼✨!\n"
+        "تقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
+        reply_markup=reply_markup
+    )
 
-        # إرسال الكيبورد السُفلي فقط بدون رسالة
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="\u200b",  # حرف مخفي يمنع الكراش
-            reply_markup=reply_keyboard
-        )
-
-    except Exception as e:
-        print(f"Error in start: {e}")
-
-# عندما يضغط المستخدم على زر المساعدة
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        await update.message.reply_text(
-            "إذا كنت بحاجة للمساعدة، يمكنك التواصل مع المدير عبر تيليجرام: @OMAR_M_SHEHATA"
-        )
-    except Exception as e:
-        print(f"Error in help: {e}")
-
-# التعامل مع الزر عند الضغط عليه
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        query = update.callback_query
-        await query.answer()  # للإجابة على الحدث
-        if query.data == 'help':
-            await query.message.reply_text(
-                "إذا كنت بحاجة للمساعدة، يمكنك التواصل مع المدير عبر تيليجرام: @OMAR_M_SHEHATA"
-            )
-    except Exception as e:
-        print(f"Error in button_handler: {e}")
+    # إرسال الكيبورد السُفلي فقط بدون رسالة
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="\u200b",  # حرف مخفي يمنع الكراش
+        reply_markup=reply_keyboard
+    )
 
 # تسجيل الأوامر
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("restart", start))
-
-# إضافة handler للزر
-application.add_handler(CallbackQueryHandler(button_handler))
 
 # صفحة التشغيل
 @flask_app.route("/")
