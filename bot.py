@@ -2,8 +2,8 @@ import os
 import asyncio
 import nest_asyncio
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
 
 # تفعيل nest_asyncio
@@ -19,32 +19,41 @@ flask_app = Flask(__name__)
 
 # أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")],
-        [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")],
-        [InlineKeyboardButton("🆘 مساعدة", url="https://t.me/OMAR_M_SHEHATA")]
+    # زر في الرسالة فقط
+    inline_keyboard = [
+        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(inline_keyboard)
+
+    # كيبورد دائم تحت الرسالة
+    reply_keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("🚀 Start Shopping")],
+            [KeyboardButton("❓المساعدة")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+
+    # إرسال الرسالة بالزر الخارجي
     await update.message.reply_text(
         "مرحبًا بك في Panda Store 🐼✨!\n"
         "تقدر تشتري نجوم تيليجرام بكل سهولة من موقعنا الرسمي 🌟",
         reply_markup=reply_markup
     )
 
-# التعامل مع ضغط الأزرار
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if query.data == "start_shopping":
-        # لما يضغط على Start Shopping يعيد إرسال رسالة /start
-        await context.bot.send_message(chat_id=query.from_user.id, text="/start")
+    # إرسال الكيبورد الثابت
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="اختر من الأزرار بالأسفل:",
+        reply_markup=reply_keyboard
+    )
 
-# تسجيل أوامر البوت
+# تسجيل الأوامر
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("restart", start))
-application.add_handler(CallbackQueryHandler(button_handler))
 
-# الصفحة الرئيسية
+# صفحة التشغيل
 @flask_app.route("/")
 def home():
     return "✅ Panda Bot is Running!"
@@ -59,12 +68,12 @@ def webhook_handler():
 
 # إعداد الويب هوك
 async def setup_webhook():
-    set_webhook_url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    webhook_data = {"url": f"{WEBHOOK_URL}/webhook"}
-    response = requests.post(set_webhook_url, data=webhook_data)
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": f"{WEBHOOK_URL}/webhook"}
+    response = requests.post(url, data=data)
     print("Webhook setup response:", response.json())
 
-# بدء البوت والخادم
+# بدء التطبيق
 if __name__ == "__main__":
     async def main():
         if not application._initialized:
