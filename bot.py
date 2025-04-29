@@ -2,8 +2,8 @@ import os
 import asyncio
 import nest_asyncio
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler  # تصحيح الاستيرادات
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 import requests
 
 # تفعيل nest_asyncio
@@ -20,8 +20,9 @@ flask_app = Flask(__name__)
 # أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")],  # رابط عادي يفتح في المتصفح
-        [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")]
+        [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")],
+        [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")],
+        [InlineKeyboardButton("🆘 مساعدة", url="https://t.me/OMAR_M_SHEHATA")]  # يفتح شات مع اليوزر
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -30,19 +31,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# لما المستخدم يضغط على "Start Shopping"
+# التعامل مع ضغط الأزرار
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if query.data == "start_shopping":
+        # لما يضغط على Start Shopping يعيد إرسال رسالة /start
         await start(update, context)
 
 # تسجيل أوامر البوت
 application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("restart", start))  # لو تحب تضيف أمر إعادة تشغيل عادي
-application.add_handler(
-    CallbackQueryHandler(button_handler)  # التعامل مع زرار "Start Shopping"
-)
+application.add_handler(CommandHandler("restart", start))
+application.add_handler(CallbackQueryHandler(button_handler))
 
 # الصفحة الرئيسية
 @flask_app.route("/")
