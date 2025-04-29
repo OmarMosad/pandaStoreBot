@@ -26,7 +26,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton("🚀 Start Shopping")],
             [KeyboardButton("❓المساعدة")]
         ],
         resize_keyboard=True,
@@ -46,9 +45,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_keyboard
     )
 
+# عندما يضغط المستخدم على زر المساعدة
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "إذا كنت بحاجة للمساعدة، يمكنك التواصل مع المدير عبر تيليجرام: @OMAR_M_SHEHATA"
+    )
+
 # تسجيل الأوامر
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("restart", start))
+
+# التعامل مع زر المساعدة
+application.add_handler(CommandHandler("help", help))
 
 # صفحة التشغيل
 @flask_app.route("/")
