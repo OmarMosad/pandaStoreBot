@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🚀 افتح Panda Store", url="https://pandastores.onrender.com")],
         [InlineKeyboardButton("🚀 Start Shopping", callback_data="start_shopping")],
-        [InlineKeyboardButton("🆘 مساعدة", url="https://t.me/OMAR_M_SHEHATA")]  # يفتح شات مع اليوزر
+        [InlineKeyboardButton("🆘 مساعدة", url="https://t.me/OMAR_M_SHEHATA")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -37,7 +37,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if query.data == "start_shopping":
         # لما يضغط على Start Shopping يعيد إرسال رسالة /start
-        await start(update, context)
+        await context.bot.send_message(chat_id=query.from_user.id, text="/start")
 
 # تسجيل أوامر البوت
 application.add_handler(CommandHandler("start", start))
